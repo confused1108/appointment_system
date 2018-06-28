@@ -15,10 +15,10 @@ Class UserModel extends CI_Model
     }
     public function apply_form(){
         $result=array();
-        $sql="SElECT * FROM category";
+        $sql="SElECT * FROM category ORDER BY cat_minutes ASC";
         $query=$this->db->query($sql);
         $result['catdata']=$query->result_array();
-        $sql="SELECT * FROM slots";
+        $sql="SELECT * FROM slots ORDER BY day_id ASC";
         $query=$this->db->query($sql);
         $result['slotdata']=$query->result_array();
         $sql="SELECT * FROM days";
@@ -31,10 +31,10 @@ Class UserModel extends CI_Model
     }
     public function submit_date($date){
         $result=array();
-        $sql="SElECT * FROM category";
+        $sql="SElECT * FROM category ORDER BY cat_minutes ASC";
         $query=$this->db->query($sql);
         $result['catdata']=$query->result_array();
-        $sql="SELECT * FROM slots";
+        $sql="SELECT * FROM slots ORDER BY day_id ASC";
         $query=$this->db->query($sql);
         $result['slotdata']=$query->result_array();
         $sql="SELECT * FROM days";
@@ -57,10 +57,10 @@ Class UserModel extends CI_Model
         $m0=$datarem['tmin'];
         $slot=$datarem['slot'];
 
-        $sql="SElECT * FROM category";
+        $sql="SElECT * FROM category ORDER BY cat_minutes ASC";
         $query=$this->db->query($sql);
         $result['catdata']=$query->result_array();
-        $sql="SELECT * FROM slots";
+        $sql="SELECT * FROM slots ORDER BY day_id ASC";
         $query=$this->db->query($sql);
         $result['slotdata']=$query->result_array();
         $sql="SELECT * FROM days";
@@ -83,6 +83,27 @@ Class UserModel extends CI_Model
         $year = date('y', strtotime($date));
         $month = date('m', strtotime($date));
         $day = date('d', strtotime($date));
+        $year0=date("y");
+        $month0=date("m");
+        $day0=date("d");
+
+        if($year<$year0){
+            $result['error']="date";
+            return $result;
+        }
+        else if($year==$year0){
+            if($month<$month0){
+                $result['error']="date";
+                return $result;
+            }
+            else if ($month==$month0){
+                if($day<$day0){
+                    $result['error']="date";
+                    return $result;
+                }
+            }
+        }
+
         $sql="SELECT * FROM category WHERE cat_id='$category'";
         $query = $this->db->query($sql);
         if($query->num_rows() > 0) {
@@ -144,12 +165,16 @@ Class UserModel extends CI_Model
             $query=$this->db->query($sql);
             $a=$m0+$time;
             if($a>60){
-                $b=$h0+1;
-                $c=$m0+$time-60;
+                $b=$h0+1;//my_end_hour
+                $c=$m0+$time-60-1;//my_end_minute
+                while($c>60){
+                    $c=$c-60;
+                    $b=$b+1;
+                }
             }
             else{
                 $b=$h0;//my_end_hour
-                $c=$a;//my_end_minute
+                $c=$a-1;//my_end_minute
             }
             if($query->num_rows()<$panel){
                 $sql="INSERT INTO appointments (name,number,category,cat_name,start_hour,end_hour,start_minute,end_minute,day,month,year,slot) VALUES ('".$name."','".$number."','".$category."','".$cat_name."','".sprintf("%02d", $h0)."','".sprintf("%02d", $b)."','".sprintf("%02d", $m0)."','".sprintf("%02d", $c)."','".$day."','".$month."','".$year."','".$slot."')";
@@ -158,7 +183,7 @@ Class UserModel extends CI_Model
                 return $result;
             }
             else{
-                $count=0;
+                $flag=0;
                 $rows = $query->result();
                 foreach( $rows as $row )
                 {
@@ -170,17 +195,16 @@ Class UserModel extends CI_Model
                     $t2=$h7+$m7;
                     $t3=$h0+($m0/60);
                     $t4=$b+($c/60);
+
                     if(($t3>=$t1 && $t3<$t2) || ($t4>$t1 && $t4<=$t2)){
                         $result['error']="yes1";
                         return $result;
                     }
-                    else{
-                        $sql="INSERT INTO appointments (name,number,category,cat_name,start_hour,end_hour,start_minute,end_minute,day,month,year,slot) VALUES ('".$name."','".$number."','".$category."','".$cat_name."','".sprintf("%02d", $h0)."','".sprintf("%02d", $b)."','".sprintf("%02d", $m0)."','".sprintf("%02d", $c)."','".$day."','".$month."','".$year."','".$slot."')";
-                        $this->db->query($sql);
-                        $result['error']="no";
-                        return $result;
-                    }
                 }
+                $sql="INSERT INTO appointments (name,number,category,cat_name,start_hour,end_hour,start_minute,end_minute,day,month,year,slot) VALUES ('".$name."','".$number."','".$category."','".$cat_name."','".sprintf("%02d", $h0)."','".sprintf("%02d", $b)."','".sprintf("%02d", $m0)."','".sprintf("%02d", $c)."','".$day."','".$month."','".$year."','".$slot."')";
+                $this->db->query($sql);
+                $result['error']="no";
+                return $result;
             }
         }
         else{
